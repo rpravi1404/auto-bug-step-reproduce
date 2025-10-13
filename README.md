@@ -25,14 +25,9 @@ Detects and logs navigation changes automatically.
 ✅ **Lightweight & Secure**  
 Runs locally — no external data storage or AI API calls.  
 
----
+## 🧩 Icon
 
-## 🧩 Demo
-*(Add screenshot or short GIF here later)*
-
-![Extension Screenshot](./assets/EyeRedDot128.png)
-
----
+![Extension Screenshot](./assets/EyeRedDot16.png)
 
 ## 🛠️ Installation
 
