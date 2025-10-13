@@ -81,8 +81,8 @@ copyBtn.addEventListener("click", async () => {
 
   try {
     await navigator.clipboard.writeText(formatted);
-    copyBtn.textContent = "✅ Copied!";
-    setTimeout(() => (copyBtn.textContent = "📋 Copy to Clipboard"), 1500);
+    copyBtn.textContent = "Copied!";
+    setTimeout(() => (copyBtn.textContent = "Copy to Clipboard"), 1500);
   } catch (err) {
     console.error("Clipboard copy failed:", err);
     alert("Failed to copy steps. Please try manually.");

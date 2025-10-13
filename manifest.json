@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Auto Bug Reproducer",
+  "name": "Auto Bug Steps Reproducer",
   "description": "Tracks user interactions on websites and generates reproducible bug steps for QA engineers.",
   "version": "1.0",
   "permissions": ["storage", "scripting", "activeTab"],

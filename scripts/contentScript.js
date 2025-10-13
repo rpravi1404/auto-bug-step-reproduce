@@ -26,8 +26,11 @@ function generateStep(event) {
     case "keyup":
     case "blur":
     case "input":
-      if (el.type === "password") return `Entered password in '${label}' field`;
-      return `Entered '${el.value}' in '${label}' field`;
+      if (el.value && label ) {
+        if (el.type === "password") return `Entered password in '${label}' field`;
+        return `Entered '${el.value}' in '${label}' field`;
+      }
+      return null;
     case "change":
       return `Changed value of '${label}'`;
     case "submit":
