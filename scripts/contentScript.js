@@ -6,11 +6,29 @@ let steps = [];
 let inputTimeout;
 let lastUrl = location.href;
 
+// Helper: find the most descriptive parent element (useful for React apps)
+function findMeaningfulParent(el) {
+  let current = el;
+  while (current && current.tagName !== 'BODY') {
+    const tag = current.tagName.toUpperCase();
+    if (['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'SELECT', 'LABEL'].includes(tag)) {
+      return current;
+    }
+    // If it has an onclick or a role that looks interactive
+    if (current.onclick || current.getAttribute('role') === 'button' || current.getAttribute('tabindex') !== null) {
+      return current;
+    }
+
+    current = current.parentElement;
+  }
+  return el;
+}
+
 // ---------------------------
 // Step Generator Function
 // ---------------------------
 function generateStep(event) {
-  const el = event.target;
+  const el = event.type === "click" ? findMeaningfulParent(event.target) : event.target;
   const label =
     (el.innerText && el.innerText.trim()) ||
     el.placeholder ||
@@ -18,7 +36,14 @@ function generateStep(event) {
     el.name ||
     el.id ||
     el.value ||
-    el.tagName;
+    el.tagName ||
+    el.getAttribute('data-testid') ||
+    el.getAttribute('data-cy') ||
+    el.getAttribute('aria-label') ||
+    el.getAttribute('data-test') ||
+    el.getAttribute('data-test-id') ||
+    el.getAttribute('data-test-cy') ||
+    el.getAttribute('data-test-aria-label');
 
   switch (event.type) {
     case "click":
@@ -178,16 +203,16 @@ function formatStep(step) {
   const url = location.hostname.replace("www.", "");
 
   if (step.startsWith("Clicked on")) {
-    return `User clicked on the ${step.split("'")[1]} button on ${pageTitle}.`;
+    return `User clicked on the ${step.split("'")[1]} button.`;
   }
   if (step.startsWith("Entered")) {
     return `User entered ${step.split("'")[1]} in the ${step.split("'")[3]} field.`;
   }
   if (step.startsWith("Changed value of")) {
-    return `User modified the value of ${step.split("'")[1]} on ${pageTitle}.`;
+    return `User modified the value of ${step.split("'")[1]}.`;
   }
   if (step.startsWith("Submitted")) {
-    return `User submitted the ${step.split("'")[1]} form on ${url}.`;
+    return `User submitted the ${step.split("'")[1]} form.`;
   }
   if (step.startsWith("Navigated to")) {
     return `User navigated to ${step.replace("Navigated to", "").trim()}.`;
