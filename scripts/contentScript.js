@@ -11,11 +11,11 @@ function findMeaningfulParent(el) {
   let current = el;
   while (current && current.tagName !== 'BODY') {
     const tag = current.tagName.toUpperCase();
-    if (['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'SELECT', 'LABEL'].includes(tag)) {
+    if (['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'SELECT', 'P', 'LABEL'].includes(tag)) {
       return current;
     }
     // If it has an onclick or a role that looks interactive
-    if (current.onclick || current.getAttribute('role') === 'button' || current.getAttribute('tabindex') !== null) {
+    if (current.onclick || current.getAttribute('role') === 'button' || current.getAttribute('tabindex') !== null || current.getAttribute('data-testid') !== null) {
       return current;
     }
 
@@ -60,6 +60,8 @@ function generateStep(event) {
       return `Changed value of '${label}'`;
     case "submit":
       return `Submitted form '${label}'`;
+    case "date":
+      return `Selected date '${el.value}' in '${label}' field`;
     default:
       return `Interacted with '${label}'`;
   }
@@ -203,20 +205,23 @@ function formatStep(step) {
   const url = location.hostname.replace("www.", "");
 
   if (step.startsWith("Clicked on")) {
-    return `User clicked on the ${step.split("'")[1]} button.`;
+    return `Click on the ${step.split("'")[1]} button.`;
   }
   if (step.startsWith("Entered")) {
-    return `User entered ${step.split("'")[1]} in the ${step.split("'")[3]} field.`;
+    return `Enter ${step.split("'")[1]} in the ${step.split("'")[3]} field.`;
   }
   if (step.startsWith("Changed value of")) {
-    return `User modified the value of ${step.split("'")[1]}.`;
+    return `Modify the value of ${step.split("'")[1]}.`;
   }
   if (step.startsWith("Submitted")) {
-    return `User submitted the ${step.split("'")[1]} form.`;
+    return `Submit the ${step.split("'")[1]} form.`;
   }
   if (step.startsWith("Navigated to")) {
-    return `User navigated to ${step.replace("Navigated to", "").trim()}.`;
+    return `Navigate to ${step.replace("Navigated to", "").trim()}.`;
   }
-  return `User performed: ${step}`;
+  if (step.startsWith("Selected date")) {
+    return `Select the date ${step.split("'")[1]} from calendar.`;
+  }
+  return `Perform: ${step}`;
 }
 
