@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Auto Bug Reproducer",
+  "description": "Tracks user interactions on websites and generates reproducible bug steps for QA engineers.",
+  "version": "1.0",
+  "permissions": ["storage", "scripting", "activeTab"],
+  "background": {
+    "service_worker": "scripts/background.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "assets/EyeRedDot16.png",
+      "48": "assets/EyeRedDot48.png",
+      "128": "assets/EyeRedDot128.png"
+    }
+  },
+  "icons": {
+    "16": "assets/EyeRedDot16.png",
+    "48": "assets/EyeRedDot48.png",
+    "128": "assets/EyeRedDot128.png"
+  },
+ "content_scripts": [
+  {
+    "matches": ["<all_urls>"],
+    "js": ["scripts/contentScript.js"],
+    "run_at": "document_end"
+  }
+],
+  "host_permissions": ["<all_urls>"]
+}

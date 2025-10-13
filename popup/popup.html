@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>QA Steps Recorder</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        width: 280px;
+        padding: 10px;
+      }
+      #recordBtn, #clearBtn, #copyBtn {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 8px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      #recordBtn {
+        background-color: #007bff;
+        color: white;
+      }
+      #clearBtn {
+        background-color: #dc3545;
+        color: white;
+      }
+      #copyBtn {
+        background-color: #28a745;
+        color: white;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      li {
+        margin-bottom: 5px;
+        padding: 4px;
+        border-bottom: 1px solid #eee;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="recordBtn"> Start Recording</button>
+    <button id="clearBtn"> Clear Steps</button>
+    <button id="copyBtn"> Copy to Clipboard</button>
+    <ul id="stepsList"></ul>
+    <script src="popup.js"></script>
+  </body>
+</html>
