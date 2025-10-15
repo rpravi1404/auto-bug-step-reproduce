@@ -6,68 +6,6 @@ let steps = [];
 let inputTimeout;
 let lastUrl = location.href;
 
-// Helper: find the most descriptive parent element (useful for React apps)
-function findMeaningfulParent(el) {
-  let current = el;
-  while (current && current.tagName !== 'BODY') {
-    const tag = current.tagName.toUpperCase();
-    if (['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'SELECT', 'P', 'LABEL'].includes(tag)) {
-      return current;
-    }
-    // If it has an onclick or a role that looks interactive
-    if (current.onclick || current.getAttribute('role') === 'button' || current.getAttribute('tabindex') !== null || current.getAttribute('data-testid') !== null) {
-      return current;
-    }
-
-    current = current.parentElement;
-  }
-  return el;
-}
-
-// ---------------------------
-// Step Generator Function
-// ---------------------------
-function generateStep(event) {
-  const el = event.type === "click" ? findMeaningfulParent(event.target) : event.target;
-  const label =
-    (el.innerText && el.innerText.trim()) ||
-    el.placeholder ||
-    el.ariaLabel ||
-    el.name ||
-    el.id ||
-    el.value ||
-    el.tagName ||
-    el.getAttribute('data-testid') ||
-    el.getAttribute('data-cy') ||
-    el.getAttribute('aria-label') ||
-    el.getAttribute('data-test') ||
-    el.getAttribute('data-test-id') ||
-    el.getAttribute('data-test-cy') ||
-    el.getAttribute('data-test-aria-label');
-
-  switch (event.type) {
-    case "click":
-      return `Clicked on '${label}'`;
-    case "keyup":
-    case "blur":
-    case "input":
-      if (el.value && label ) {
-        if (el.type === "password") return `Entered password in '${label}' field`;
-        return `Entered '${el.value}' in '${label}' field`;
-      }
-      return null;
-    case "change":
-      return `Changed value of '${label}'`;
-    case "submit":
-      return `Submitted form '${label}'`;
-    case "date":
-      return `Selected date '${el.value}' in '${label}' field`;
-    default:
-      return `Interacted with '${label}'`;
-  }
-}
-
-
 // ---------------------------
 // Event Handler
 // ---------------------------
@@ -79,17 +17,21 @@ function handleEvent(event) {
     clearTimeout(inputTimeout);
     inputTimeout = setTimeout(() => {
       const step = generateStep(event);
+      if (step) {
+        const formattedStep = formatStep(step);
+        steps.push(formattedStep);
+        chrome.storage.local.set({ steps });
+        console.log(`Step ${steps.length}: ${formattedStep}`);
+      }
+    }, 400);
+  } else {
+    const step = generateStep(event);
+    if (step) {
       const formattedStep = formatStep(step);
       steps.push(formattedStep);
       chrome.storage.local.set({ steps });
       console.log(`Step ${steps.length}: ${formattedStep}`);
-    }, 400);
-  } else {
-    const step = generateStep(event);
-    const formattedStep = formatStep(step);
-    steps.push(formattedStep);
-    chrome.storage.local.set({ steps });
-    console.log(`Step ${steps.length}: ${formattedStep}`);
+    }
   }
 }
 
@@ -111,8 +53,8 @@ function attachListeners() {
 function detachListeners() {
   window.removeEventListener("click", handleEvent, true);
   window.removeEventListener("input", handleEvent, true);
-  window.addEventListener("keyup", handleEvent, true);
-  window.addEventListener("blur", handleEvent, true);
+  window.removeEventListener("keyup", handleEvent, true);
+  window.removeEventListener("blur", handleEvent, true);
   window.removeEventListener("change", handleEvent, true);
   window.removeEventListener("submit", handleEvent, true);
 }
@@ -159,9 +101,10 @@ function startRecording() {
   steps = [];
 
   const step = `Navigated to ${location.href}`;
-  steps.push(step);
+  const formattedStep = formatStep(step);
+  steps.push(formattedStep);
   chrome.storage.local.set({ steps });
-  console.log(`Step 1: ${step}`);
+  console.log(`Step 1: ${formattedStep}`);
 
   attachListeners();
   monitorUrlChanges();
@@ -196,32 +139,3 @@ chrome.storage.local.get(["isRecording"], (res) => {
     startRecording();
   }
 });
-
-// ---------------------------
-// Natural Language Formatter
-// ---------------------------
-function formatStep(step) {
-  const pageTitle = document.title || "this page";
-  const url = location.hostname.replace("www.", "");
-
-  if (step.startsWith("Clicked on")) {
-    return `Click on the ${step.split("'")[1]} button.`;
-  }
-  if (step.startsWith("Entered")) {
-    return `Enter ${step.split("'")[1]} in the ${step.split("'")[3]} field.`;
-  }
-  if (step.startsWith("Changed value of")) {
-    return `Modify the value of ${step.split("'")[1]}.`;
-  }
-  if (step.startsWith("Submitted")) {
-    return `Submit the ${step.split("'")[1]} form.`;
-  }
-  if (step.startsWith("Navigated to")) {
-    return `Navigate to ${step.replace("Navigated to", "").trim()}.`;
-  }
-  if (step.startsWith("Selected date")) {
-    return `Select the date ${step.split("'")[1]} from calendar.`;
-  }
-  return `Perform: ${step}`;
-}
-
