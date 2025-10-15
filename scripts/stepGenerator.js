@@ -103,6 +103,12 @@ function getEffectiveElement(event) {
 function getElementLabel(el) {
   if (!el) return "an element";
 
+  // If el is a text node, move up to its parent element
+  if (el.nodeType !== 1) { // 1 = ELEMENT_NODE
+    el = el.parentElement;
+    if (!el) return "an element";
+  }
+
   return (
     el.getAttribute("aria-label") ||
     el.getAttribute("data-testid") ||

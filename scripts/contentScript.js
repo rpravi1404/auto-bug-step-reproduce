@@ -35,6 +35,14 @@ function handleEvent(event) {
     console.log(`Step ${steps.length}: ${formattedStep}`);
   };
 
+  if (target.tagName === "INPUT" && target.type === "radio") {
+    if (event.type === "change") {
+      // Only record the change event, ignore other events like click
+      recordStep();
+    }
+    return; // Skip the rest of the logic for radios
+  }
+
   if (debouncedEvents.includes(event.type)) {
     // 🕒 Debounce specific to each input element
     const existingTimer = debounceMap.get(target);
