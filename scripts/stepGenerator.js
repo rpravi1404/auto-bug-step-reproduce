@@ -8,7 +8,7 @@ function findMeaningfulParentOrSiblings(element) {
 
   const isMeaningful = (el) => {
     const tag = el.tagName?.toUpperCase();
-    const text = el.innerText?.trim();
+    const text = el.innerText?.trim() || '';
     const aria = el.getAttribute?.('aria-label');
     const title = el.getAttribute?.('title');
     const placeholder = el.getAttribute?.('placeholder');
@@ -56,104 +56,164 @@ function findMeaningfulParentOrSiblings(element) {
   return element;
 }
 
-// Helper: find the most descriptive parent element (useful for React apps)
-// function findMeaningfulParent(el) {
-//   let current = el;
-//   while (current && current.tagName !== 'BODY') {
-//     const tag = current.tagName.toUpperCase();
-//     if (['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'SELECT', 'LABEL'].includes(tag)) {
-//       return current;
-//     }
-//     // If it has an onclick or a role that looks interactive
-//     if (current.onclick || current.getAttribute('role') === 'button' || current.getAttribute('tabindex') !== null) {
-//       return current;
-//     }
-
-//     current = current.parentElement;
-//   }
-//   return el;
-// }
 
 // Step Generator Function
 function generateStep(event) {
-  const el = event.type === "click" ? findMeaningfulParentOrSiblings(event.target) : event.target;
-  const label =
-    (el.innerText && el.innerText.trim()) ||
-    el.placeholder ||
-    el.ariaLabel ||
-    el.name ||
-    el.id ||
-    el.value ||
-    el.tagName ||
-    el.getAttribute('data-testid') ||
-    el.getAttribute('data-cy') ||
-    el.getAttribute('aria-label') ||
-    el.getAttribute('data-test') ||
-    el.getAttribute('data-test-id') ||
-    el.getAttribute('data-test-cy') ||
-    el.getAttribute('data-test-aria-label');
+  const el = getEffectiveElement(event);
+  const label = getElementLabel(el);
 
   switch (event.type) {
     case "click":
-      if (el.tagName === "SELECT") {
-        return; // Ignore clicks on dropdowns, handled in 'change' event
-      }
-      return `Clicked on '${label}'`;
+      return handleClick(el, label);
+
+    case "input":
     case "keyup":
     case "blur":
-    case "input":
-      if (el.value && label ) {
-        if (el.tagName === "SELECT") {
-          return; // Ignore, handled in 'change' event
-        }else {
-          if (el.type === "password") return `Entered password in '${label}' field`;
-          return `Entered '${el.value}' in '${label}' field`;
-        }
-      }  
+      return handleTextInput(el, label);
+
     case "change":
-      if (el.tagName === "SELECT") {
-        const selectedOption = el.options[el.selectedIndex];
-        const value = selectedOption?.textContent?.trim() || selectedOption?.value || "unknown";
-        return `Selected '${value}' from dropdown '${el.name || label}'`;
-      } else if (el.type === "checkbox" || el.type === "radio") {
-        return `Changed value of '${label}' to '${el.checked}'`;
-      } else {
-        return `Changed value of '${label}' to '${el.value}'`;
-      }
+      return handleChange(el, label);
+
     case "submit":
-      return `Submitted form '${label}'`;
-    case "date":
-      return `Selected date '${el.value}' in '${label}' field`;
+      return handleSubmit(el, label);
+
     default:
       return `Interacted with '${label}'`;
   }
 }
 
+function getEffectiveElement(event) {
+  const target = event.target;
+  const type = event.type;
+
+  // Ignore invisible or script elements
+  if (!target || !target.tagName) return target;
+
+  // For click and change, try to find meaningful element
+  if (["click", "change"].includes(type)) {
+    const meaningful = findMeaningfulParentOrSiblings(target, 3); // limit to 3 levels
+    return meaningful || target;
+  }
+
+  return target;
+}
+
+
+
+function getElementLabel(el) {
+  if (!el) return "an element";
+
+  return (
+    el.getAttribute("aria-label") ||
+    el.getAttribute("data-testid") ||
+    el.getAttribute("data-cy") ||
+    el.getAttribute("data-test") ||
+    el.getAttribute("data-test-id") ||
+    el.getAttribute("data-test-cy") ||
+    el.getAttribute("data-test-aria-label") ||
+    el.name ||
+    el.id ||
+    el.placeholder ||
+    el.innerText?.trim() ||
+    el.value ||
+    el.tagName
+  );
+}
+
+/* ---------- Event-specific Handlers ---------- */
+
+function handleClick(el, label) {
+  if (!el) return;
+  if (el.tagName === "SELECT") return; // handled by 'change'
+  return `Clicked on '${label}'`;
+}
+
+function handleTextInput(el, label) {
+  if (!el || !label || el.tagName === "SELECT") return;
+
+  if (el.type === "password") {
+    return `Entered password in '${label}' field`;
+  }
+  if (el.type === "date") {
+    return `Selected date '${el.value}' in '${label}' field`;
+  }
+  if (el.value?.trim()) {
+    return `Entered '${el.value.trim()}' in '${label}' field`;
+  }
+}
+
+function handleChange(el, label) {
+  if (!el) return;
+
+  if (el.tagName === "SELECT") {
+    const selected = el.options[el.selectedIndex];
+    const value = selected?.textContent?.trim() || selected?.value || "unknown";
+    return `Selected '${value}' from dropdown '${label}'`;
+  }
+
+  if (el.type === "checkbox" || el.type === "radio") {
+    return `Changed '${label}' to ${el.checked ? "checked" : "unchecked"}`;
+  }
+
+  if (el.type === "date") {
+    return `Selected date '${el.value}' in '${label}' field`;
+  }
+
+  return `Changed value of '${label}' to '${el.value}'`;
+}
+
+function handleSubmit(el, label) {
+  return `Submitted form '${label}'`;
+}
+
+
 // Natural Language Formatter
 function formatStep(step) {
+  if (!step || typeof step !== "string") return "";
+
   const pageTitle = document.title || "this page";
   const url = location.hostname.replace("www.", "");
 
-  if (step.startsWith("Clicked on")) {
-    return `Click on the ${step.split("'")[1]}`;
+  // 🔹 Extract all text enclosed in single quotes
+  const extractQuoted = (text) => {
+    const matches = text.match(/'([^']+)'/g);
+    return matches ? matches.map((m) => m.replace(/'/g, "").trim()) : [];
+  };
+
+  const parts = extractQuoted(step);
+
+  // 🔹 Clean and capitalize first word
+  const capitalize = (str) =>
+    str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+
+  let result = "";
+
+  if (step.startsWith("Clicked on") && parts[0]) {
+    result = `Click on the ${parts[0]}`;
+  } else if (step.startsWith("Entered") && parts.length >= 2) {
+    result = `Enter "${parts[0]}" in the ${parts[1]} field`;
+  } else if (step.startsWith("Selected") && parts.length >= 2) {
+    result = `Select "${parts[0]}" from the ${parts[1]} dropdown`;
+  } else if (step.startsWith("Changed value of") && parts[0]) {
+    result = `Modify the value of ${parts[0]}`;
+  } else if (step.startsWith("Submitted") && parts[0]) {
+    result = `Submit the ${parts[0]} form`;
+  } else if (step.startsWith("Navigated to")) {
+    const destination = step.replace("Navigated to", "").trim();
+    result = `Navigate to ${destination || url}`;
+  } else if (step.startsWith("Selected date") && parts[0]) {
+    result = `Select the date ${parts[0]} from the calendar`;
+  } else {
+    result = `Perform action: ${step}`;
   }
-  if (step.startsWith("Entered")) {
-    return `Enter ${step.split("'")[1]} in the ${step.split("'")[3]} field.`;
-  }
-  if (step.startsWith("Selected")) {
-    return `Select ${step.split("'")[1]} from the ${step.split("'")[3]} dropdown.`;
-  }
-  if (step.startsWith("Changed value of")) {
-    return `Modify the value of ${step.split("'")[1]}.`;
-  }
-  if (step.startsWith("Submitted")) {
-    return `Submit the ${step.split("'")[1]} form.`;
-  }
-  if (step.startsWith("Navigated to")) {
-    return `Navigate to ${step.replace("Navigated to", "").trim()}.`;
-  }
-  if (step.startsWith("Selected date")) {
-    return `Select the date ${step.split("'")[1]} from calendar.`;
-  }
-  return `Perform: ${step}`;
+
+  // 🔹 Cleanup: normalize punctuation & spacing
+  result = result
+    .replace(/\s+/g, " ") // multiple spaces → single space
+    .replace(/\.\s*$/, "") // remove trailing period
+    .trim();
+
+  // 🔹 Ensure it starts with a capital letter and ends with a period
+  return `${capitalize(result.charAt(0)) + result.slice(1)}.`;
 }
+

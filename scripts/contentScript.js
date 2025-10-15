@@ -9,29 +9,45 @@ let lastUrl = location.href;
 // ---------------------------
 // Event Handler
 // ---------------------------
+// 🔹 Maintain individual debounce timers for each element
+const debounceMap = new Map();
+
+const getDebounceDelay = (el) => {
+  if (el.tagName === "TEXTAREA") return 800;
+  if (el.tagName === "INPUT" && el.type === "text") return 400;
+  return 200;
+};
+
 function handleEvent(event) {
   if (!isRecording) return;
 
-  if (["input", "keyup", "blur"].includes(event.type)) {
-    // Debounce text input events
-    clearTimeout(inputTimeout);
-    inputTimeout = setTimeout(() => {
-      const step = generateStep(event);
-      if (step) {
-        const formattedStep = formatStep(step);
-        steps.push(formattedStep);
-        chrome.storage.local.set({ steps });
-        console.log(`Step ${steps.length}: ${formattedStep}`);
-      }
-    }, 400);
-  } else {
+  const debouncedEvents = ["input", "keyup", "blur"];
+  const target = event.target;
+  const DEBOUNCE_DELAY = getDebounceDelay(target);
+
+  const recordStep = () => {
     const step = generateStep(event);
-    if (step) {
-      const formattedStep = formatStep(step);
-      steps.push(formattedStep);
-      chrome.storage.local.set({ steps });
-      console.log(`Step ${steps.length}: ${formattedStep}`);
-    }
+    if (!step) return;
+
+    const formattedStep = formatStep(step);
+    steps.push(formattedStep);
+    chrome.storage.local.set({ steps });
+    console.log(`Step ${steps.length}: ${formattedStep}`);
+  };
+
+  if (debouncedEvents.includes(event.type)) {
+    // 🕒 Debounce specific to each input element
+    const existingTimer = debounceMap.get(target);
+    if (existingTimer) clearTimeout(existingTimer);
+
+    const newTimer = setTimeout(() => {
+      recordStep();
+      debounceMap.delete(target); // cleanup
+    }, DEBOUNCE_DELAY);
+
+    debounceMap.set(target, newTimer);
+  } else {
+    recordStep();
   }
 }
 
