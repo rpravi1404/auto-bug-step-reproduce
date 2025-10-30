@@ -27,5 +27,7 @@
     "run_at": "document_end"
   }
 ],
-  "host_permissions": ["<all_urls>"]
+  "host_permissions": ["<all_urls>"],
+  "author": "Ravi Pandey",
+  "homepage_url": "https://github.com/rpravi1404/auto-bug-step-reproduce"
 }
